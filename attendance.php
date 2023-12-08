@@ -1,13 +1,16 @@
 <?php
 session_start();
 
-// Database connection parameters
+if (!isset($_SESSION['username'])) {
+    header("Location: index.php");
+    exit;
+}
+
 $host = 'localhost';
 $username = 'root';
 $password = '';
 $database = 'attendance_system';
 
-// Create a connection to the database
 $mysqli = new mysqli($host, $username, $password, $database);
 
 if ($mysqli->connect_error) {
@@ -15,11 +18,10 @@ if ($mysqli->connect_error) {
 }
 
 if (!isset($_SESSION['username'])) {
-    header("Location: login.php");
+    header("Location: index.php");
     exit;
 }
 
-// Fetch labs data from the database for drop-down list
 $labsResult = $mysqli->query("SELECT * FROM labs");
 $labs = [];
 
@@ -29,7 +31,6 @@ if ($labsResult->num_rows > 0) {
     }
 }
 
-// Fetch distinct courseandsection_id values for the "Course and Section" input
 $courseAndSectionsResult = $mysqli->query("SELECT DISTINCT courseandsection_id FROM students");
 $courseAndSections = [];
 
@@ -39,7 +40,6 @@ if ($courseAndSectionsResult->num_rows > 0) {
     }
 }
 
-// Edit functionality
 if (isset($_GET['edit_id'])) {
     $editId = $mysqli->real_escape_string($_GET['edit_id']);
     $editResult = $mysqli->query("SELECT * FROM students WHERE id = '$editId'");
@@ -49,7 +49,6 @@ if (isset($_GET['edit_id'])) {
     }
 }
 
-// Update functionality
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_id'])) {
     $updateId = $mysqli->real_escape_string($_POST['update_id']);
     $name = $mysqli->real_escape_string($_POST['name']);
@@ -57,17 +56,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_id'])) {
     $courseAndSection = $mysqli->real_escape_string($_POST['courseandsection_id']);
     $labId = $mysqli->real_escape_string($_POST['lab']);
 
-    $updateQuery = "UPDATE students 
-                    SET name = '$name', student_id = '$studentId', 
-                        courseandsection_id = '$courseAndSection', lab_id = '$labId' 
-                    WHERE id = '$updateId'";
+    if ($labId == '') {
+        echo "Error: Please select a laboratory.";
+    } else {
+        $updateQuery = "UPDATE students 
+                        SET name = '$name', student_id = '$studentId', 
+                            courseandsection_id = '$courseAndSection', lab_id = '$labId' 
+                        WHERE id = '$updateId'";
 
-    if ($mysqli->query($updateQuery) !== TRUE) {
-        echo "Error updating record: " . $mysqli->error;
+        if ($mysqli->query($updateQuery) !== TRUE) {
+            echo "Error updating record: " . $mysqli->error;
+        }
     }
 }
 
-// Delete functionality
 if (isset($_GET['delete_id'])) {
     $deleteId = $mysqli->real_escape_string($_GET['delete_id']);
     $deleteQuery = "DELETE FROM students WHERE id = '$deleteId'";
@@ -77,7 +79,6 @@ if (isset($_GET['delete_id'])) {
     }
 }
 
-// Fetch attendance data from the database
 $result = $mysqli->query("SELECT students.*, labs.lab_name 
                          FROM students 
                          JOIN labs ON students.lab_id = labs.id");
@@ -90,22 +91,24 @@ if ($result->num_rows > 0) {
     }
 }
 
-// Add functionality
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($_POST['update_id'])) {
     $name = $mysqli->real_escape_string($_POST['name']);
     $studentId = $mysqli->real_escape_string($_POST['student_id']);
     $courseAndSection = $mysqli->real_escape_string($_POST['courseandsection_id']);
     $labId = $mysqli->real_escape_string($_POST['lab']);
 
-    $addQuery = "INSERT INTO students (name, student_id, courseandsection_id, lab_id) 
-                 VALUES ('$name', '$studentId', '$courseAndSection', '$labId')";
-
-    if ($mysqli->query($addQuery) !== TRUE) {
-        echo "Error adding record: " . $mysqli->error;
+    if ($labId == '') {
+        echo "Error: Please select a laboratory.";
     } else {
-        // Redirect after successful form submission
-        header("Location: ".$_SERVER['PHP_SELF']);
-        exit();
+        $addQuery = "INSERT INTO students (name, student_id, courseandsection_id, lab_id) 
+                     VALUES ('$name', '$studentId', '$courseAndSection', '$labId')";
+
+        if ($mysqli->query($addQuery) !== TRUE) {
+            echo "Error adding record: " . $mysqli->error;
+        } else {
+            header("Location: ".$_SERVER['PHP_SELF']);
+            exit();
+        }
     }
 }
 ?>
@@ -116,13 +119,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Attendance</title>
-    <!-- Bootstrap CSS with animated class -->
+    <title>[Admin] Attendance</title>
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
 
     <style>
-        .fade-in {
-            animation: fadeIn 1s ease-in-out;
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding-top: 60px;
+        }
+
+        .fixed-header {
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .scrollable-content {
+            overflow-y: auto;
+            max-height: calc(100vh - 60px);
+        }
+
+        .container {
+            animation: fadeIn 0.2s ease-in-out;
+            position: relative;
+            margin-top: 20px;
+        }
+
+        .table th,
+        .table td {
+            text-align: center;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.2s ease-in-out;
+            margin-bottom: 20px;
+            position: relative;
         }
 
         @keyframes fadeIn {
@@ -134,20 +173,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($
                 opacity: 1;
             }
         }
+
+        .logo {
+            max-width: 200px;
+        }
+
+        .welcome-message {
+            font-size: 20px;
+            color: #333;
+        }
+
+        #realTimeClock {
+            font-size: 16px;
+            color: #333;
+            margin-left: 10px;
+        }
+
+        .logout-button {
+            margin-left: auto;
+        }
+
+        .view-attendance-button {
+            margin-left: 10px;
+        }
+
+        .form-container {
+            margin-top: 20px;
+        }
     </style>
 </head>
 
 <body>
-    <div class="container fade-in p-4 rounded shadow">
+    <div class="fixed-header">
         <div class="header">
+            <div>
+                <img src="ccs.png" alt="Logo" class="logo">
+            </div>
             <?php if (isset($_SESSION['username'])) : ?>
-                <h2 class="mb-0">Welcome to Student Attendance System: <?php echo $_SESSION['username']; ?></h2>
+                <div class="welcome-message">
+                    Welcome to Student Attendance System: <?php echo $_SESSION['username']; ?>
+                </div>
             <?php endif; ?>
+            <div id="realTimeClock"></div>
             <div class="logout-button">
                 <button class="btn btn-danger" onclick="logout()">Logout</button>
             </div>
+            <div class="view-attendance-button">
+                <button class="btn btn-primary" onclick="redirectToAttendance()">Attendance List</button>
+            </div>
         </div>
+    </div>
 
+    <div class="container p-4 rounded shadow scrollable-content">
         <h2 class="mb-3">View Attendance</h2>
 
         <table class="table table-bordered">
@@ -162,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($
             <?php foreach ($students as $key => $student) : ?>
                 <tr>
                     <td><?php echo $student['name']; ?></td>
-                    <td><?php echo $student['time_in']; ?></td> <!-- Make sure 'time_in' is a valid column in your database -->
+                    <td><?php echo $student['time_in']; ?></td>
                     <td><?php echo $student['student_id']; ?></td>
                     <td><?php echo $student['courseandsection_id']; ?></td>
                     <td><?php echo $student['lab_name']; ?></td>
@@ -174,56 +251,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($
             <?php endforeach; ?>
         </table>
 
-        <!-- Edit Student form -->
         <?php if (isset($editStudent)) : ?>
             <h3>Edit Student</h3>
-            <form method="POST">
-                <!-- Add hidden input field to store the ID for update -->
+            <form method="POST" class="form-container">
                 <input type="hidden" name="update_id" value="<?php echo $editStudent['id']; ?>">
-                <label for="labDropdown">Select Laboratory:</label>
-                <select name="lab" id="labDropdown" class="form-control">
-                    <option value="" disabled selected>Select Laboratory</option>
-                    <?php foreach ($labs as $lab) : ?>
-                        <option value="<?php echo $lab['id']; ?>" <?php echo ($lab['id'] == $editStudent['lab_id']) ? 'selected' : ''; ?>><?php echo $lab['lab_name']; ?></option>
-                    <?php endforeach; ?>
-                </select><br><br>
+                <div class="form-group">
+                    <label for="labDropdown">Select Laboratory:</label>
+                    <select name="lab" id="labDropdown" class="form-control">
+                        <option value="" disabled>Select Laboratory</option>
+                        <?php foreach ($labs as $lab) : ?>
+                            <option value="<?php echo $lab['id']; ?>" <?php echo ($lab['id'] == $editStudent['lab_id']) ? 'selected' : ''; ?>><?php echo $lab['lab_name']; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-                <label for="courseAndSection">Course and Section:</label>
-                <input type="text" name="courseandsection_id" id="courseAndSection" value="<?php echo $editStudent['courseandsection_id']; ?>" required><br><br>
+                <div class="form-group">
+                    <label for="courseAndSection">Course and Section:</label>
+                    <input type="text" name="courseandsection_id" id="courseAndSection" class="form-control" value="<?php echo $editStudent['courseandsection_id']; ?>" required>
+                </div>
 
-                <label for="name">Name:</label>
-                <input type="text" name="name" value="<?php echo $editStudent['name']; ?>" required><br><br>
-                <label for="student_id">Student ID:</label>
-                <input type="text" name="student_id" value="<?php echo $editStudent['student_id']; ?>" required><br><br>
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" name="name" class="form-control" value="<?php echo $editStudent['name']; ?>" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="student_id">Student ID:</label>
+                    <input type="text" name="student_id" class="form-control" value="<?php echo $editStudent['student_id']; ?>" required>
+                </div>
+
                 <input type="submit" class="btn btn-primary" value="Update Student">
             </form>
         <?php endif; ?>
 
-        <h3 class="mt-4">Add a New Student</h3>
-        <form method="POST">
-            <label for="labDropdown">Select Laboratory:</label>
-            <select name="lab" id="labDropdown" class="form-control">
-                <option value="" disabled selected>Select Laboratory</option>
-                <?php foreach ($labs as $lab) : ?>
-                    <option value="<?php echo $lab['id']; ?>"><?php echo $lab['lab_name']; ?></option>
-                <?php endforeach; ?>
-            </select><br><br>
+        <div class="form-container">
+            <h3 class="mt-4">Add a New Student</h3>
+            <form method="POST">
+                <div class="form-group">
+                    <label for="labDropdown">Select Laboratory:</label>
+                    <select name="lab" id="labDropdown" class="form-control">
+                        <option value="" disabled>Select Laboratory</option>
+                        <?php foreach ($labs as $lab) : ?>
+                            <option value="<?php echo $lab['id']; ?>" <?php echo ($lab['lab_name'] == 'MAC LAB') ? 'selected' : ''; ?>>
+                                <?php echo $lab['lab_name']; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-            <label for="courseAndSection">Course and Section:</label>
-            <input type="text" name="courseandsection_id" id="courseAndSection" required><br><br>
+                <div class="form-group">
+                    <label for="courseAndSection">Course and Section:</label>
+                    <input type="text" name="courseandsection_id" id="courseAndSection" class="form-control" required>
+                </div>
 
-            <label for="name">Name:</label>
-            <input type="text" name="name" required><br><br>
-            <label for="student_id">Student ID:</label>
-            <input type="text" name="student_id" required><br><br>
-            <input type="submit" class="btn btn-primary" name="submit" value="Add Student">
-        </form>
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="student_id">Student ID:</label>
+                    <input type="text" name="student_id" class="form-control" required>
+                </div>
+
+                <input type="submit" class="btn btn-primary" name="submit" value="Add Student">
+            </form>
+        </div>
     </div>
 
-    <!-- Bootstrap JS -->
+    <div id="realTimeClock" style="position: fixed; top: 10px; left: 10px; font-size: 16px; color: #333;"></div>
+
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 
-    <!-- Your existing JavaScript code -->
     <script>
         function logout() {
             if (confirm("Are you sure you want to log out?")) {
@@ -231,17 +330,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($
             }
         }
 
-        // Add a fade-in effect when the page is fully loaded
+        function redirectToAttendance() {
+            window.open('view_attendance.php', '_blank');
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelector('.container').classList.add('fade-in');
         });
-    </script>
 
+        function updateClock() {
+            var now = new Date();
+            var dateTimeString = now.toLocaleString();
+            document.getElementById('realTimeClock').innerHTML = dateTimeString;
+        }
+
+        setInterval(updateClock, 1000);
+
+        updateClock();
+    </script>
 </body>
 
 </html>
 
 <?php
-// Close the database connection
 $mysqli->close();
 ?>

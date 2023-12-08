@@ -32,32 +32,38 @@ $searchCondition = $searchQuery
         OR students.student_id LIKE '%$searchQuery%'
         OR students.courseandsection_id LIKE '%$searchQuery%')"
     : "";
-
 $result = $mysqli->query("SELECT students.*, labs.lab_name 
-                         FROM students 
-                         JOIN labs ON students.lab_id = labs.id
-                         $condition $searchCondition");
+    FROM students 
+    JOIN labs ON students.lab_id = labs.id
+    $condition $searchCondition");
 
 $students = [];
 
 if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
+        // Format the time to 12-hour format
+        $row['time_in'] = date("h:i:s A", strtotime($row['time_in']));
         $students[] = $row;
     }
 }
-?>
 
+// Check if the referring page is index.php
+$referringPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+$showPrintButton = strpos($referringPage, 'index.php') === false;
+?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Attendance</title>
-    <!-- Bootstrap CSS -->
+    <title>[Student] Attendance</title>
+
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
     <style>
         body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: 'Montserrat', sans-serif;
             background-color: #f0f0f0;
             margin: 0;
             padding: 0;
@@ -86,9 +92,21 @@ if ($result->num_rows > 0) {
             align-items: center;
         }
 
+        .header img {
+            max-width: 190px; /* Adjust the max-width as needed */
+            height: auto; 
+    /* Maintain the aspect ratio of the logo */
+        }
+
         .header h2 {
             flex: 1;
             font-size: large;
+        }
+
+        .header a {
+            color: blue; /* Adjust the color as needed */
+            text-decoration: none;
+            cursor: pointer;
         }
 
         h3 {
@@ -96,10 +114,29 @@ if ($result->num_rows > 0) {
             text-align: center;
         }
 
+        .lab-menu {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+        }
+
+        .lab-menu a {
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .lab-menu a:hover {
+            background-color: #0056b3;
+        }
+
         table.student-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            display: none;
         }
 
         table.student-table th,
@@ -115,30 +152,32 @@ if ($result->num_rows > 0) {
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
+            <img src="ccs.png" alt="College of Computer Studies">
             <h2 class="mb-0">Welcome to the College of Computer Studies</h2>
-           
+            <a href="#" onclick="goBack()">Go Back</a>
         </div>
-        <p>You can view your Attendance here</p>
+        <center><p>You can view your Attendance here</p></center>
+
+        <div class="lab-menu">
+            <a href="?lab=" <?php echo empty($selectedLaboratory) ? 'class="active"' : ''; ?>>All Laboratories</a>
+            <?php foreach ($laboratories as $lab) : ?>
+                <a href="?lab=<?php echo $lab; ?>" <?php echo $selectedLaboratory == $lab ? 'class="active"' : ''; ?>><?php echo $lab; ?></a>
+            <?php endforeach; ?>
+        </div>
+
         <form method="GET" class="mb-3">
             <div class="form-group">
-                <label for="labDropdown">Select Laboratory:</label>
-                <select name="lab" id="labDropdown" class="form-control" onchange="this.form.submit()">
-                    <option value="" <?php echo empty($selectedLaboratory) ? 'selected' : ''; ?>>All Laboratories</option>
-                    <?php foreach ($laboratories as $lab) : ?>
-                        <option value="<?php echo $lab; ?>" <?php echo $selectedLaboratory == $lab ? 'selected' : ''; ?>><?php echo $lab; ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="form-group">
                 <label for="searchInput">Search by Name, Student ID, or Section:</label>
+                <p>This will search in all Laboratory</p>
                 <input type="text" name="search" id="searchInput" class="form-control" value="<?php echo $searchQuery; ?>" placeholder="Enter name, student ID, or section">
             </div>
             <button type="submit" class="btn btn-primary">Search</button>
         </form>
-        
+
         <h3>View All Attendance<?php echo $selectedLaboratory ? " - Laboratory: $selectedLaboratory" : ''; ?></h3>
 
         <table id="attendanceTable" class="table table-bordered student-table">
@@ -157,7 +196,7 @@ if ($result->num_rows > 0) {
         </table>
     </div>
 
-    <!-- Bootstrap JS and dependencies -->
+ 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -166,23 +205,37 @@ if ($result->num_rows > 0) {
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 
     <script>
-        // Function to update attendance data
-        function updateAttendanceData() {
-            // Your AJAX logic to fetch updated data from the server
-            $.ajax({
-    url: 'get_attendance_data.php',
-    method: 'GET',
-    data: { lab: '<?php echo $selectedLaboratory; ?>', search: '<?php echo $searchQuery; ?>' },
-    dataType: 'json',
-    success: function (data) {
-        // Update the table with the new data
-        updateTable(data);
-    },
-    error: function (error) {
-        console.error('Error fetching data:', error);
-    }
-});
+        function goBack() {
+            var referringPage = document.referrer;
 
+            if (referringPage.includes('index.php')) {
+                window.location.href = 'index.php';
+            } else if (referringPage.includes('attendance.php')) {
+                window.location.href = 'attendance.php';
+            } else {
+                // Default to index.php if the referring page is unknown
+                window.location.href = 'index.php';
+            }
+        }
+
+        function updateAttendanceData() {
+
+            $.ajax({
+                url: 'get_attendance_data.php',
+                method: 'GET',
+                data: { lab: '<?php echo $selectedLaboratory; ?>', search: '<?php echo $searchQuery; ?>' },
+                dataType: 'json',
+                success: function (data) {
+                    // Update the table with the new data
+                    updateTable(data);
+
+                    // Show the table after updating data
+                    $('.student-table').fadeIn();
+                },
+                error: function (error) {
+                    console.error('Error fetching data:', error);
+                }
+            });
         }
 
         // Function to update the table with new data
@@ -211,6 +264,7 @@ if ($result->num_rows > 0) {
         updateAttendanceData();
     </script>
 </body>
+
 </html>
 
 <?php

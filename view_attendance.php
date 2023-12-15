@@ -32,9 +32,11 @@ $searchCondition = $searchQuery
         OR students.student_id LIKE '%$searchQuery%'
         OR students.courseandsection_id LIKE '%$searchQuery%')"
     : "";
-$result = $mysqli->query("SELECT students.*, labs.lab_name 
+
+$result = $mysqli->query("SELECT students.*, labs.lab_name, users.username AS added_by
     FROM students 
     JOIN labs ON students.lab_id = labs.id
+    LEFT JOIN users ON students.added_by = users.id
     $condition $searchCondition");
 
 $students = [];
@@ -188,6 +190,7 @@ $showPrintButton = strpos($referringPage, 'index.php') === false;
                     <th>Student ID</th>
                     <th>Course and Section</th>
                     <th>Laboratory</th>
+                    <th>Instructor Username</th>
                 </tr>
             </thead>
             <tbody>
@@ -252,6 +255,7 @@ $showPrintButton = strpos($referringPage, 'index.php') === false;
                         <td>${student.student_id}</td>
                         <td>${student.courseandsection_id}</td>
                         <td>${student.lab_name}</td>
+                        <td>${student.added_by}</td>
                     </tr>
                 `);
             });

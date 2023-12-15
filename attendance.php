@@ -96,12 +96,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($
     $studentId = $mysqli->real_escape_string($_POST['student_id']);
     $courseAndSection = $mysqli->real_escape_string($_POST['courseandsection_id']);
     $labId = $mysqli->real_escape_string($_POST['lab']);
+    $addedBy = $_SESSION['username'];
 
     if ($labId == '') {
         echo "Error: Please select a laboratory.";
     } else {
-        $addQuery = "INSERT INTO students (name, student_id, courseandsection_id, lab_id) 
-                     VALUES ('$name', '$studentId', '$courseAndSection', '$labId')";
+        $addQuery = "INSERT INTO students (name, student_id, courseandsection_id, lab_id, added_by) 
+                     VALUES ('$name', '$studentId', '$courseAndSection', '$labId', '$addedBy')";
 
         if ($mysqli->query($addQuery) !== TRUE) {
             echo "Error adding record: " . $mysqli->error;
@@ -227,28 +228,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($
     <div class="container p-4 rounded shadow scrollable-content">
         <h2 class="mb-3">View Attendance</h2>
 
-        <table class="table table-bordered">
-            <tr>
-                <th>Name</th>
-                <th>Time In</th>
-                <th>Student ID</th>
-                <th>Course and Section</th>
-                <th>Laboratory</th>
-                <th>Action</th>
-            </tr>
-            <?php foreach ($students as $key => $student) : ?>
+        <table class="table table-bordered student-table">
+            <thead class="thead-dark">
                 <tr>
-                    <td><?php echo $student['name']; ?></td>
-                    <td><?php echo $student['time_in']; ?></td>
-                    <td><?php echo $student['student_id']; ?></td>
-                    <td><?php echo $student['courseandsection_id']; ?></td>
-                    <td><?php echo $student['lab_name']; ?></td>
-                    <td>
-                        <a href="?edit_id=<?php echo $student['id']; ?>">Edit</a> |
-                        <a href="?delete_id=<?php echo $student['id']; ?>" onclick="return confirm('Are you sure you want to delete this student?')">Delete</a>
-                    </td>
+                    <th>Name</th>
+                    <th>Time In</th>
+                    <th>Student ID</th>
+                    <th>Course and Section</th>
+                    <th>Laboratory</th>
+                    <th>Added By</th> <!-- Added this line -->
+                    <th>Action</th>
                 </tr>
-            <?php endforeach; ?>
+            </thead>
+            <tbody>
+                <?php foreach ($students as $key => $student) : ?>
+                    <tr>
+                        <td><?php echo $student['name']; ?></td>
+                        <td><?php echo $student['time_in']; ?></td>
+                        <td><?php echo $student['student_id']; ?></td>
+                        <td><?php echo $student['courseandsection_id']; ?></td>
+                        <td><?php echo $student['lab_name']; ?></td>
+                        <td><?php echo $student['added_by']; ?></td> <!-- Added this line -->
+                        <td>
+                            <a href="?edit_id=<?php echo $student['id']; ?>">Edit</a> |
+                            <a href="?delete_id=<?php echo $student['id']; ?>" onclick="return confirm('Are you sure you want to delete this student?')">Delete</a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
         </table>
 
         <?php if (isset($editStudent)) : ?>

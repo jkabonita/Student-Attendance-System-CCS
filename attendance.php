@@ -1,45 +1,56 @@
 <?php
+// Start a session to manage user login status
 session_start();
 
+// Check if the user is not logged in, redirect to the login page
 if (!isset($_SESSION['username'])) {
     header("Location: index.php");
     exit;
 }
 
+// Database connection details
 $host = 'localhost';
 $username = 'root';
 $password = '';
 $database = 'attendance_system';
 
+// Create a MySQLi object for database connection
 $mysqli = new mysqli($host, $username, $password, $database);
 
+// Check for database connection errors
 if ($mysqli->connect_error) {
     die('Connection failed: ' . $mysqli->connect_error);
 }
 
+// Check if the user is not logged in, redirect to the login page (double-check)
 if (!isset($_SESSION['username'])) {
     header("Location: index.php");
     exit;
 }
 
+// Fetch all labs from the 'labs' table
 $labsResult = $mysqli->query("SELECT * FROM labs");
 $labs = [];
 
+// Populate the $labs array with lab details
 if ($labsResult->num_rows > 0) {
     while ($labRow = $labsResult->fetch_assoc()) {
         $labs[] = $labRow;
     }
 }
 
+// Fetch distinct course and section IDs from the 'students' table
 $courseAndSectionsResult = $mysqli->query("SELECT DISTINCT courseandsection_id FROM students");
 $courseAndSections = [];
 
+// Populate the $courseAndSections array with distinct course and section IDs
 if ($courseAndSectionsResult->num_rows > 0) {
     while ($row = $courseAndSectionsResult->fetch_assoc()) {
         $courseAndSections[] = $row['courseandsection_id'];
     }
 }
 
+// If an 'edit_id' is provided in the URL, fetch the student details for editing
 if (isset($_GET['edit_id'])) {
     $editId = $mysqli->real_escape_string($_GET['edit_id']);
     $editResult = $mysqli->query("SELECT * FROM students WHERE id = '$editId'");
@@ -49,64 +60,79 @@ if (isset($_GET['edit_id'])) {
     }
 }
 
+// If the form is submitted for updating a student record
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_id'])) {
+    // Extract and sanitize form data
     $updateId = $mysqli->real_escape_string($_POST['update_id']);
     $name = $mysqli->real_escape_string($_POST['name']);
     $studentId = $mysqli->real_escape_string($_POST['student_id']);
     $courseAndSection = $mysqli->real_escape_string($_POST['courseandsection_id']);
     $labId = $mysqli->real_escape_string($_POST['lab']);
 
+    // Check if a laboratory is selected
     if ($labId == '') {
         echo "Error: Please select a laboratory.";
     } else {
+        // Update the student record in the 'students' table
         $updateQuery = "UPDATE students 
                         SET name = '$name', student_id = '$studentId', 
                             courseandsection_id = '$courseAndSection', lab_id = '$labId' 
                         WHERE id = '$updateId'";
 
+        // Check for update query execution errors
         if ($mysqli->query($updateQuery) !== TRUE) {
             echo "Error updating record: " . $mysqli->error;
         }
     }
 }
 
+// If a 'delete_id' is provided in the URL, delete the corresponding student record
 if (isset($_GET['delete_id'])) {
     $deleteId = $mysqli->real_escape_string($_GET['delete_id']);
     $deleteQuery = "DELETE FROM students WHERE id = '$deleteId'";
 
+    // Check for delete query execution errors
     if ($mysqli->query($deleteQuery) !== TRUE) {
         echo "Error deleting record: " . $mysqli->error;
     }
 }
 
+// Fetch student details along with associated lab names from the 'students' and 'labs' tables
 $result = $mysqli->query("SELECT students.*, labs.lab_name 
                          FROM students 
                          JOIN labs ON students.lab_id = labs.id");
 
 $students = [];
 
+// Populate the $students array with student details
 if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         $students[] = $row;
     }
 }
 
+// If the form is submitted for adding a new student
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($_POST['update_id'])) {
+    // Extract and sanitize form data
     $name = $mysqli->real_escape_string($_POST['name']);
     $studentId = $mysqli->real_escape_string($_POST['student_id']);
     $courseAndSection = $mysqli->real_escape_string($_POST['courseandsection_id']);
     $labId = $mysqli->real_escape_string($_POST['lab']);
     $addedBy = $_SESSION['username'];
 
+    // Check if a laboratory is selected
     if ($labId == '') {
         echo "Error: Please select a laboratory.";
     } else {
+        // Insert a new student record into the 'students' table
         $addQuery = "INSERT INTO students (name, student_id, courseandsection_id, lab_id, added_by) 
                      VALUES ('$name', '$studentId', '$courseAndSection', '$labId', '$addedBy')";
 
+        // Check for insert query execution errors
         if ($mysqli->query($addQuery) !== TRUE) {
             echo "Error adding record: " . $mysqli->error;
         } else {
+            // Redirect to the current page after successful record addition
             header("Location: ".$_SERVER['PHP_SELF']);
             exit();
         }

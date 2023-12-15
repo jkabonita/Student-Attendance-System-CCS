@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 08, 2023 at 08:19 AM
+-- Generation Time: Dec 15, 2023 at 06:33 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -38,7 +38,11 @@ CREATE TABLE `admin_users` (
 --
 
 INSERT INTO `admin_users` (`id`, `username`, `password`) VALUES
-(1, 'admin', 'password');
+(1, 'admin', 'password'),
+(3, 'janceeabonita', 'janceeabonita01234567890'),
+(5, 'vincentcortez', 'vincent012'),
+(7, 'melem143', 'melem143143'),
+(8, 'Vincent Cortez', 'vincent01234');
 
 -- --------------------------------------------------------
 
@@ -75,7 +79,26 @@ CREATE TABLE `students` (
   `time_in` timestamp NOT NULL DEFAULT current_timestamp(),
   `student_id` varchar(50) NOT NULL,
   `courseandsection_id` varchar(50) NOT NULL,
-  `lab_id` int(11) NOT NULL
+  `lab_id` int(11) NOT NULL,
+  `added_by` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `students`
+--
+
+INSERT INTO `students` (`id`, `name`, `time_in`, `student_id`, `courseandsection_id`, `lab_id`, `added_by`) VALUES
+(95, 'Neil Acbang', '2023-12-15 17:32:00', '221001031', 'BSIT 2G', 2, 'janceeabonita');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `username` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -102,6 +125,12 @@ ALTER TABLE `students`
   ADD KEY `lab_id` (`lab_id`);
 
 --
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -109,7 +138,7 @@ ALTER TABLE `students`
 -- AUTO_INCREMENT for table `admin_users`
 --
 ALTER TABLE `admin_users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `labs`
@@ -121,7 +150,13 @@ ALTER TABLE `labs`
 -- AUTO_INCREMENT for table `students`
 --
 ALTER TABLE `students`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=96;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables

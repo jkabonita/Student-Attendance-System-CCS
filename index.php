@@ -128,7 +128,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="card-header">
                 <img src="ccs.png" alt="College of Computer Studies" class="header-logo">
 
-                <h2>Administrator Login</h2>
+                <h2>Instructor Login</h2>
             </div>
             <div class="card-body">
                 <form method="POST">

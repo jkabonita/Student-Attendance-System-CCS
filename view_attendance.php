@@ -190,11 +190,11 @@ $showPrintButton = strpos($referringPage, 'index.php') === false;
                     <th>Student ID</th>
                     <th>Course and Section</th>
                     <th>Laboratory</th>
-                    <th>Instructor Username</th>
+                    <th>Instructor Name</th>
                 </tr>
             </thead>
             <tbody>
-                <!-- Table rows will be dynamically updated using JavaScript -->
+        
             </tbody>
         </table>
     </div>

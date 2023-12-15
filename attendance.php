@@ -217,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($
             <?php endif; ?>
             <div id="realTimeClock"></div>
             <div class="logout-button">
-                <button class="btn btn-danger" onclick="logout()">Logout</button>
+                <button class="btn btn-danger" onclick="logout()">Logout: <?php echo $_SESSION['username']; ?></button>
             </div>
             <div class="view-attendance-button">
                 <button class="btn btn-primary" onclick="redirectToAttendance()">Attendance List</button>
@@ -236,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && !isset($
                     <th>Student ID</th>
                     <th>Course and Section</th>
                     <th>Laboratory</th>
-                    <th>Added By</th> <!-- Added this line -->
+                    <th>Instructor</th> 
                     <th>Action</th>
                 </tr>
             </thead>
